@@ -1,7 +1,6 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import MapRouteCalculator from './MapRouteCalculator';
-import CampusMap from './CampusMap.svg'; // Import the external SVG file
 
 const CampusMapSVG = ({ 
   userPosition, 
@@ -338,7 +337,287 @@ const CampusMapSVG = ({
         onClick={handleMapClick}
         onContextMenu={handleRightClick}
       >
-        <CampusMap /> {/* Render the external SVG content here */}
+        {/* Campus Map Background */}
+        <rect width="2800" height="4000" fill="#f8fafc" />
+        
+        {/* Campus Buildings - Mock SVG representation */}
+        <g id="buildings">
+          {/* Main Academic Block */}
+          <rect x="400" y="800" width="600" height="400" fill="#e2e8f0" stroke="#64748b" strokeWidth="3" rx="8" />
+          <text x="700" y="1020" textAnchor="middle" className="fill-slate-700 text-sm font-medium">Academic Block</text>
+          
+          {/* Library */}
+          <rect x="1200" y="600" width="400" height="300" fill="#ddd6fe" stroke="#7c3aed" strokeWidth="3" rx="8" />
+          <text x="1400" y="770" textAnchor="middle" className="fill-purple-700 text-sm font-medium">Library</text>
+          
+          {/* Student Center */}
+          <rect x="800" y="1400" width="500" height="350" fill="#fef3c7" stroke="#f59e0b" strokeWidth="3" rx="8" />
+          <text x="1050" y="1590" textAnchor="middle" className="fill-amber-700 text-sm font-medium">Student Center</text>
+          
+          {/* Hostel Blocks */}
+          <rect x="1800" y="1000" width="300" height="800" fill="#dcfce7" stroke="#16a34a" strokeWidth="3" rx="8" />
+          <text x="1950" y="1420" textAnchor="middle" className="fill-green-700 text-sm font-medium">Hostel A</text>
+          
+          <rect x="2200" y="1000" width="300" height="800" fill="#dcfce7" stroke="#16a34a" strokeWidth="3" rx="8" />
+          <text x="2350" y="1420" textAnchor="middle" className="fill-green-700 text-sm font-medium">Hostel B</text>
+          
+          {/* Sports Complex */}
+          <rect x="400" y="2200" width="800" height="600" fill="#fecaca" stroke="#dc2626" strokeWidth="3" rx="8" />
+          <text x="800" y="2520" textAnchor="middle" className="fill-red-700 text-sm font-medium">Sports Complex</text>
+          
+          {/* Administrative Block */}
+          <rect x="1400" y="1900" width="400" height="300" fill="#e0e7ff" stroke="#3b82f6" strokeWidth="3" rx="8" />
+          <text x="1600" y="2070" textAnchor="middle" className="fill-blue-700 text-sm font-medium">Admin Block</text>
+        </g>
+
+        {/* Enhanced Campus Roads with waypoint indicators */}
+        <g id="roads">
+          <path d="M 200 1000 L 2600 1000" stroke="#94a3b8" strokeWidth="20" fill="none" />
+          <path d="M 1400 200 L 1400 3800" stroke="#94a3b8" strokeWidth="20" fill="none" />
+          <path d="M 600 1800 L 2200 1800" stroke="#94a3b8" strokeWidth="15" fill="none" />
+          
+          {/* Road intersection markers */}
+          <circle cx="1400" cy="1000" r="8" fill="#64748b" />
+          <circle cx="1400" cy="1800" r="8" fill="#64748b" />
+          <circle cx="600" cy="1000" r="6" fill="#64748b" />
+          <circle cx="2200" cy="1000" r="6" fill="#64748b" />
+        </g>
+
+        {/* Campus Locations with enhanced interactions */}
+        <g id="locations">
+          {campusLocations.map((location) => {
+            const pixel = gpsToPixel(location.lat, location.lng);
+            const isSelected = selectedDestination?.id === location.id;
+            const isHovered = hoveredLocation?.id === location.id;
+            
+            return (
+              <g key={location.id}>
+                {/* Location marker */}
+                <motion.circle
+                  cx={pixel.x}
+                  cy={pixel.y}
+                  r={isSelected ? 24 : isHovered ? 20 : 15}
+                  fill={isSelected ? "#3b82f6" : isHovered ? "#60a5fa" : "#64748b"}
+                  stroke="#ffffff"
+                  strokeWidth="3"
+                  className="cursor-pointer"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleLocationClick(location);
+                  }}
+                  onMouseEnter={() => handleLocationHover(location)}
+                  onMouseLeave={handleLocationLeave}
+                  whileHover={{ scale: 1.2 }}
+                  whileTap={{ scale: 0.9 }}
+                  animate={{
+                    scale: isSelected ? [1, 1.2, 1] : 1,
+                    fill: isSelected ? "#3b82f6" : isHovered ? "#60a5fa" : "#64748b"
+                  }}
+                  transition={{ duration: 0.3 }}
+                />
+                
+                {/* Location label */}
+                <text
+                  x={pixel.x}
+                  y={pixel.y - (isSelected ? 35 : isHovered ? 30 : 25)}
+                  textAnchor="middle"
+                  className="fill-slate-700 text-xs font-medium pointer-events-none"
+                  style={{ fontSize: isHovered || isSelected ? '14px' : '12px' }}
+                >
+                  {location.name}
+                </text>
+                
+                {/* Category indicator */}
+                <circle
+                  cx={pixel.x + (isSelected ? 18 : 12)}
+                  cy={pixel.y - (isSelected ? 18 : 12)}
+                  r="4"
+                  fill={
+                    location.category === 'academic' ? '#7c3aed' :
+                    location.category === 'dining' ? '#f59e0b' :
+                    location.category === 'facilities' ? '#dc2626' :
+                    location.category === 'dormitory' ? '#16a34a' : '#64748b'
+                  }
+                  className="pointer-events-none"
+                />
+              </g>
+            );
+          })}
+        </g>
+
+        {/* Custom selected location marker */}
+        <AnimatePresence>
+          {selectedMapPoint && selectedMapPoint.isCustom && (
+            <g id="custom-location">
+              <motion.circle
+                cx={gpsToPixel(selectedMapPoint.lat, selectedMapPoint.lng).x}
+                cy={gpsToPixel(selectedMapPoint.lat, selectedMapPoint.lng).y}
+                r="18"
+                fill="#10b981"
+                stroke="#ffffff"
+                strokeWidth="4"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                exit={{ scale: 0, opacity: 0 }}
+                transition={{ duration: 0.3 }}
+              />
+              <motion.circle
+                cx={gpsToPixel(selectedMapPoint.lat, selectedMapPoint.lng).x}
+                cy={gpsToPixel(selectedMapPoint.lat, selectedMapPoint.lng).y}
+                r="8"
+                fill="#ffffff"
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.1, duration: 0.2 }}
+              />
+              <text
+                x={gpsToPixel(selectedMapPoint.lat, selectedMapPoint.lng).x}
+                y={gpsToPixel(selectedMapPoint.lat, selectedMapPoint.lng).y - 30}
+                textAnchor="middle"
+                className="fill-emerald-700 text-sm font-semibold"
+              >
+                Selected Location
+              </text>
+            </g>
+          )}
+        </AnimatePresence>
+
+        {/* User Position */}
+        <AnimatePresence>
+          {userPosition && (
+            <g id="user-position">
+              {/* Accuracy Circle */}
+              <motion.circle
+                cx={gpsToPixel(userPosition.lat, userPosition.lng).x}
+                cy={gpsToPixel(userPosition.lat, userPosition.lng).y}
+                r="30"
+                fill="rgba(59, 130, 246, 0.2)"
+                stroke="rgba(59, 130, 246, 0.4)"
+                strokeWidth="2"
+                initial={{ scale: 0, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.5 }}
+              />
+              
+              {/* User Dot */}
+              <motion.circle
+                cx={gpsToPixel(userPosition.lat, userPosition.lng).x}
+                cy={gpsToPixel(userPosition.lat, userPosition.lng).y}
+                r="8"
+                fill="#3b82f6"
+                stroke="#ffffff"
+                strokeWidth="3"
+                initial={{ scale: 0 }}
+                animate={{ 
+                  scale: [1, 1.2, 1],
+                }}
+                transition={{ 
+                  duration: 2,
+                  repeat: Infinity,
+                  ease: "easeInOut"
+                }}
+              />
+            </g>
+          )}
+        </AnimatePresence>
+
+        {/* Enhanced Navigation Route with waypoints */}
+        <AnimatePresence>
+          {showRoute && userPosition && selectedDestination && (
+            <g id="navigation-route">
+              {/* Main route path */}
+              <motion.path
+                d={generateEnhancedRoutePath()}
+                stroke="#f59e0b"
+                strokeWidth="8"
+                fill="none"
+                strokeDasharray="12,6"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 1 }}
+                exit={{ pathLength: 0, opacity: 0 }}
+                transition={{ duration: 1.2, ease: "easeInOut" }}
+              />
+              
+              {/* Route shadow for better visibility */}
+              <motion.path
+                d={generateEnhancedRoutePath()}
+                stroke="rgba(0,0,0,0.2)"
+                strokeWidth="12"
+                fill="none"
+                strokeDasharray="12,6"
+                initial={{ pathLength: 0, opacity: 0 }}
+                animate={{ pathLength: 1, opacity: 0.5 }}
+                exit={{ pathLength: 0, opacity: 0 }}
+                transition={{ duration: 1.2, ease: "easeInOut" }}
+              />
+              
+              {/* Waypoint markers */}
+              {optimizedRoute?.waypoints?.map((waypoint, index) => {
+                const pixel = gpsToPixel(waypoint.lat, waypoint.lng);
+                return (
+                  <motion.circle
+                    key={`waypoint-${index}`}
+                    cx={pixel.x}
+                    cy={pixel.y}
+                    r="6"
+                    fill="#f59e0b"
+                    stroke="#ffffff"
+                    strokeWidth="2"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ delay: index * 0.1 + 0.5, duration: 0.3 }}
+                  />
+                );
+              })}
+            </g>
+          )}
+        </AnimatePresence>
+
+        {/* Route Direction Arrows - Enhanced */}
+        <AnimatePresence>
+          {showRoute && userPosition && selectedDestination && optimizedRoute && (
+            <g id="route-arrows">
+              {[0.2, 0.4, 0.6, 0.8].map((position, index) => {
+                const routePoints = [userPosition, ...optimizedRoute.waypoints, selectedDestination];
+                const totalSegments = routePoints.length - 1;
+                const segmentIndex = Math.floor(position * totalSegments);
+                const segmentPosition = (position * totalSegments) - segmentIndex;
+                
+                if (segmentIndex >= routePoints.length - 1) return null;
+                
+                const startPoint = routePoints[segmentIndex];
+                const endPoint = routePoints[segmentIndex + 1];
+                const startPixel = gpsToPixel(startPoint.lat, startPoint.lng);
+                const endPixel = gpsToPixel(endPoint.lat, endPoint.lng);
+                
+                const x = startPixel.x + (endPixel.x - startPixel.x) * segmentPosition;
+                const y = startPixel.y + (endPixel.y - startPixel.y) * segmentPosition;
+                
+                // Calculate arrow rotation
+                const angle = Math.atan2(endPixel.y - startPixel.y, endPixel.x - startPixel.x) * 180 / Math.PI;
+                
+                return (
+                  <motion.g
+                    key={index}
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    exit={{ scale: 0, opacity: 0 }}
+                    transition={{ delay: index * 0.15 + 0.8, duration: 0.4 }}
+                  >
+                    <polygon
+                      points={`-10,-4 10,0 -10,4`}
+                      fill="#f59e0b"
+                      stroke="#ffffff"
+                      strokeWidth="1"
+                      transform={`translate(${x},${y}) rotate(${angle})`}
+                    />
+                  </motion.g>
+                );
+              })}
+            </g>
+          )}
+        </AnimatePresence>
       </svg>
 
       {/* Location Details Tooltip */}
